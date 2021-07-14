@@ -17,9 +17,13 @@ using System.Globalization;
 
 namespace ExcelToXML
 {
+    //Future ToDo
+        //Clean up chunks of code with functions
+        //Error Handling for when a csv is not formatted properly or to only allow CSVs
+        //Extract CSV from access directly(?)
     public partial class Form1 : Form
     {
-        /* Records
+        /* Records -- Built Records
          * ***********************************************************************
          * The names of these strings correspond to the XML format ie. the SXM database uses the name Product Family instead of Make
          * ***********************************************************************
@@ -40,8 +44,10 @@ namespace ExcelToXML
             public string dealerID;
 
         }
-        /* RecordsSold
-         * **********************************************************************
+        /* RecordsSold -- Sold Records
+         * ***********************************************************************
+         * The names of these strings correspond to the XML format ie. the SXM database uses the name Product Family instead of Make
+         * ***********************************************************************
          * VIN - Vehicle Identification Number              -- SXM DB Column Name: VIN
          * saleDate - The sold date of the vehicle          -- SXM DB Column Name: Retail Sold Rpt Date OR In-Service Date OR Warranty Registration Date OR Deilvered Date
          * make - The vehicle's make                        -- SXM DB Column Nane: Product Family
@@ -85,17 +91,21 @@ namespace ExcelToXML
          */
         private void button1_Click(object sender, EventArgs e)
         {
+            //There must be a radio button clicked or else break
+
             //----------------------------------------------- Part 1 ----------------------------------------------- 
             OpenFileDialog fill = new OpenFileDialog();
             fill.ShowDialog();
             string csvPath = fill.FileName.ToString();
-
+            if(csvPath == "")
+            {
+                return;
+            }
 
             //We're going to create two XMLs -- one for Built and one for Sold
             string dirPath = @"C:\Users\" + Environment.UserName + @"\Desktop\XMLs";
             DirectoryInfo di = Directory.CreateDirectory(dirPath);
             string builtPath = dirPath + @"\RRDAIMLER_BUILT_" + DateTime.Now.ToString("yyyyMMdd")+ "_";
-            //string soldPath = dirPath + @"\RRDAIMLER_SOLD_" + @".xml";
 
             //Get the number of records
             var lines = File.ReadAllLines(csvPath);
@@ -120,14 +130,14 @@ namespace ExcelToXML
                     var line = reader.ReadLine();
                     var values = line.Split(','); //read line then split it
                     string toDisplay = string.Join(Environment.NewLine, values);
-                    //MessageBox.Show(toDisplay);
                     //append split value into struct
                     buildRecords[counter].VIN = values[0];
-                    if (values[1] == "")//this date will either be Factory Date or Built Date
+                    //Use Factory Build Date -- if it's empty, use Built Date
+                    if (values[1] == "")//If Factory Release Date is empty:
                     {
-                        buildRecords[counter].FacReDate = values[2];
+                        buildRecords[counter].FacReDate = values[2];//Use Built Date
                     }
-                    else
+                    else //use the Built Date
                     {
                         buildRecords[counter].FacReDate = values[1];
                     }
@@ -150,8 +160,6 @@ namespace ExcelToXML
             var numYears = uniqueDates.Count();
 
             //uniqueDates contains a "blank" years field. It is the last year. Let's not include it by using numYears-1
-            //Another solutions would be to go through uniqueDates and remove "" (do this later)
-            //uniqueDates.Remove("");
             //----------------------------------------------- Part 4 ----------------------------------------------- 
             for (int n = 0; n < numYears-1; n++)
             {
@@ -168,8 +176,8 @@ namespace ExcelToXML
 
                 objXDoc.Root.Add(new XElement(ns + "HEADER",
                     new XElement(ns + "SENDER_ID", "RRDAIMLER"),
-                    new XElement(ns + "RETAILER_TRANSACTION_ID", 45531411 + n),
-                    new XElement(ns + "FILE_SENT_DATE", "2021-06-14"))); //fix hard-coded date
+                    new XElement(ns + "RETAILER_TRANSACTION_ID", 45532411 + n),
+                    new XElement(ns + "FILE_SENT_DATE", DateTime.Now.ToString("yyyy-MM-dd")))); 
 
                 var xmlIndex = 1;
                 for (int i = 0; i < count; i++)
@@ -190,7 +198,7 @@ namespace ExcelToXML
                         objXDoc.Root.Add(new XElement(ns + "RETAIL_BUILT_RECORD",
                                         new XAttribute("TRANSACTION_ID", xmlIndex),
                                         new XElement(ns + "EVENT_TYPE_ID", "RETAIL_RADIO_BUILT"),
-                                        new XElement(ns + "EVENT_DATE", "2021-06-14"),//hard coded
+                                        new XElement(ns + "EVENT_DATE", DateTime.Now.ToString("yyyy-MM-dd")),
                                         new XElement(ns + "RADIO_ID", ""), //No radio IDs
                                         new XElement(ns + "VIN", buildRecords[i].VIN),
                                         new XElement(ns + "BUILT_DATE", newDate),
@@ -203,9 +211,10 @@ namespace ExcelToXML
                             );
                         xmlIndex++;
                     }
+                    //The record we are currently on has a year that does not match the XML's file year
                     else
                     {
-                        //on to the next record
+                        //Skip to the next one
                     }
 
                 }
@@ -234,6 +243,10 @@ namespace ExcelToXML
             OpenFileDialog fill = new OpenFileDialog();
             fill.ShowDialog();
             string csvPath = fill.FileName.ToString();
+            if (csvPath == "")
+            {
+                return;
+            }
 
             //Create the SOLD XML path
             string dirPath = @"C:\Users\" + Environment.UserName + @"\Desktop\XMLs";
@@ -268,33 +281,36 @@ namespace ExcelToXML
                     //MessageBox.Show(toDisplay);
                     //append split value into struct
                     soldRecords[counter].VIN = values[0];
-                    //Logic for if a date is missing (swap over to switch case for readability?)
-                    if (values[1] == "")
+                    //--------------------Logic for choosing Sold Date--------------------
+                    //---- Retail Sold Rpt Date -> In-Service Date -> Warranty Registration Date -> Delivered Date
+                    if (values[1] == "") //Check if Retail Sold Rpt Date is empty: 
                     {
-                        if (values[2] == "")
+                        if (values[2] == "")//Check if In-service Date is empty:
                         {
-                            if (values[3] == "")
+                            if (values[3] == "") //Check if Warranty Registration Date is empty:
                             {
+                                //Use the Delivered Date
                                 soldRecords[counter].saleDate = values[4];
                             }
-                            else
+                            else //Use Warranty Registration Date because it is available
                             {
                                 soldRecords[counter].saleDate = values[3];
                             }
                         }
-                        else
+                        else //Use In-service date because it is available
                         {
                             soldRecords[counter].saleDate = values[2];
                         }
                     }
-                    else
+                    else //Use Retail Sold Rpt Date because it is available
                     {
-                        soldRecords[counter].saleDate = values[1]; //saleDate will be dependent on what is available
+                        soldRecords[counter].saleDate = values[1]; 
                     }
+                    //------------------------------------------------------------------
                     soldRecords[counter].make = values[5];
                     soldRecords[counter].model = values[6];
                     soldRecords[counter].modelYear = values[7];
-                    soldRecords[counter].firstName = values[8];//NA or CA
+                    soldRecords[counter].firstName = values[8];//NA or CA 
                     soldRecords[counter].lastName = values[9];
                     soldRecords[counter].addressLn1 = values[10];
                     soldRecords[counter].city = values[11];
@@ -309,13 +325,17 @@ namespace ExcelToXML
             //Remove all duplicates
             //MessageBox.Show("numyears: " + dates.Count);
             List<string> uniqueDates = dates.Distinct().ToList();
-            //var message = string.Join(",",uniqueDates);
-            //MessageBox.Show(message);
+
             //Now run a for loop for every unique year. 
             var numYears = uniqueDates.Count();
-            //MessageBox.Show("numyears: "+ numYears);
             //uniqueDates.Remove("");
-            //----------------------------------------------- Part 4 ----------------------------------------------- 
+            /*----------------------------------------------- Part 4 ----------------------------------------------- 
+             * For every unique date, we will create a unique XML file. 
+             * For every 
+             * 
+             * 
+             * 
+            --------------------------------------------------------------------------------------------------------*/
             for (int n = 0; n < numYears-1; n++)
             {
                 var curYear = uniqueDates[n]; //curYear dictates whether we add a year during this loop
@@ -331,15 +351,16 @@ namespace ExcelToXML
 
                 objXDoc.Root.Add(new XElement(ns + "HEADER",
                     new XElement(ns + "SENDER_ID", "RRDAIMLER"),
-                    new XElement(ns + "RETAILER_TRANSACTION_ID", 45531911 + n),
-                    new XElement(ns + "FILE_SENT_DATE", "2021-06-14"))); //fix hard-coded date
+                    new XElement(ns + "RETAILER_TRANSACTION_ID", 45532911 + n),
+                    new XElement(ns + "FILE_SENT_DATE", DateTime.Now.ToString("yyyy-MM-dd")))); 
 
                 var xmlIndex = 1;
-                //Next part, open the xmls and write the basic stuff to them
-                //Open the excel file to grab data from
+
+                //Now we have the header, as for individual entries within the XML, 
+                //we will only add if they match the current year. 
                 for (int i = 0; i < count; i++)
                 {
-                    if (soldRecords[i].saleDate == curYear)
+                    if (soldRecords[i].saleDate == curYear) //
                     {
                         //cast this date string to the right format YYYY-MM-DD instead of MM/DD/YYYY
                         string newDate = "";
@@ -353,24 +374,24 @@ namespace ExcelToXML
                         objXDoc.Root.Add(new XElement(ns + "RETAIL_BUILT_RECORD",
                                         new XAttribute("TRANSACTION_ID", xmlIndex),
                                         new XElement(ns + "EVENT_TYPE_ID", "RETAIL_RADIO_BUILT"),
-                                        new XElement(ns + "EVENT_DATE", "2021-06-14"), //hard-coded
+                                        new XElement(ns + "EVENT_DATE", DateTime.Now.ToString("yyyy-MM-dd")),
                                         new XElement(ns + "RADIO_ID", ""), //No radio IDs
                                         new XElement(ns + "VIN", soldRecords[i].VIN),
-                                        new XElement(ns + "BUILT_DATE", newDate),
+                                        new XElement(ns + "SALE_DATE", newDate),
                                         new XElement(ns + "PROGRAM_CODE", "DATRK3MOAA"),
                                         new XElement(ns + "VEHICLE_MAKE", soldRecords[i].make),
                                         new XElement(ns + "VEHICLE_MODEL", soldRecords[i].model),
                                         new XElement(ns + "VEHICLE_MODEL_YEAR", soldRecords[i].modelYear),
-                                        new XElement(ns + "FIRST_NAME", "NA"), //soldRecords[i].firstName
+                                        new XElement(ns + "FIRST_NAME", "NA"), //soldRecords[i].firstName //can stay as North America
                                         new XElement(ns + "LAST_NAME", soldRecords[i].lastName),
                                         new XElement(ns + "ADDRESS_LINE1", soldRecords[i].addressLn1),
                                         new XElement(ns + "ADDRESS_LINE2", ""),
                                         new XElement(ns + "CITY", soldRecords[i].city),
                                         new XElement(ns + "STATE", soldRecords[i].state),
                                         new XElement(ns + "ZIP", soldRecords[i].zip),
-                                        new XElement(ns + "COUNTRY", "USA"), //change this to the struct value if NOT only USA
+                                        new XElement(ns + "COUNTRY", "USA"), //soldRecords[i].country "CAN"
                                         new XElement(ns + "PHONE", ""), //Not required
-                                        new XElement(ns + "EMAIL", ""),
+                                        new XElement(ns + "EMAIL", ""), //Not required
                                         new XElement(ns + "DEALER_ID", soldRecords[i].dealerID)
                                         )
                             );
