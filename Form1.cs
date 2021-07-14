@@ -91,7 +91,6 @@ namespace ExcelToXML
          */
         private void button1_Click(object sender, EventArgs e)
         {
-            //There must be a radio button clicked or else break
 
             //----------------------------------------------- Part 1 ----------------------------------------------- 
             OpenFileDialog fill = new OpenFileDialog();
@@ -329,12 +328,15 @@ namespace ExcelToXML
             //Now run a for loop for every unique year. 
             var numYears = uniqueDates.Count();
             //uniqueDates.Remove("");
+
+            //Before we write the XMLs, see if a user specified CAN or USA
+            string country = "USA"; //USA is set as default
+            if(checkBox1.Checked == true)
+            {
+                country = "CAN";
+            }
             /*----------------------------------------------- Part 4 ----------------------------------------------- 
              * For every unique date, we will create a unique XML file. 
-             * For every 
-             * 
-             * 
-             * 
             --------------------------------------------------------------------------------------------------------*/
             for (int n = 0; n < numYears-1; n++)
             {
@@ -389,7 +391,7 @@ namespace ExcelToXML
                                         new XElement(ns + "CITY", soldRecords[i].city),
                                         new XElement(ns + "STATE", soldRecords[i].state),
                                         new XElement(ns + "ZIP", soldRecords[i].zip),
-                                        new XElement(ns + "COUNTRY", "USA"), //soldRecords[i].country "CAN"
+                                        new XElement(ns + "COUNTRY", country), //soldRecords[i].country "CAN"
                                         new XElement(ns + "PHONE", ""), //Not required
                                         new XElement(ns + "EMAIL", ""), //Not required
                                         new XElement(ns + "DEALER_ID", soldRecords[i].dealerID)
@@ -397,7 +399,7 @@ namespace ExcelToXML
                             );
                         xmlIndex++;
                     }
-
+                    //The record we are currently on has a year that does not match the XML's file year
                     else
                     {
                         //skip record
