@@ -18,9 +18,9 @@ using System.Globalization;
 namespace ExcelToXML
 {
     //Future ToDo
-        //Clean up chunks of code with functions
-        //Error Handling for when a csv is not formatted properly or to only allow CSVs
-        //Extract CSV from access directly(?)
+    //Clean up chunks of code with functions
+    //Error Handling for when a csv is not formatted properly or to only allow CSVs
+    //Extract CSV from access directly(?)
     public partial class Form1 : Form
     {
         /* Records -- Built Records
