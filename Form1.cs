@@ -94,6 +94,7 @@ namespace ExcelToXML
 
             //----------------------------------------------- Part 1 ----------------------------------------------- 
             OpenFileDialog fill = new OpenFileDialog();
+            fill.Filter = "CSV Files (*.csv)|*.csv";
             fill.ShowDialog();
             string csvPath = fill.FileName.ToString();
             if(csvPath == "")
