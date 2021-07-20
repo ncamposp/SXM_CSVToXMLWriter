@@ -18,8 +18,7 @@ using System.Globalization;
 namespace ExcelToXML
 {
     //Future ToDo
-    //Clean up chunks of code with functions
-    //Error Handling for when a csv is not formatted properly or to only allow CSVs
+    //Error Handling for when a csv is not formatted properly
     //Extract CSV from access directly(?)
     public partial class Form1 : Form
     {
@@ -74,7 +73,7 @@ namespace ExcelToXML
             public string city;
             public string state;
             public string zip;
-            public string country; //Currently unused -- Hard coded USA
+            public string country; //Currently unused -- Radio Button controls this in GUI
             public string dealerID;
         }
         public Form1()
@@ -146,7 +145,7 @@ namespace ExcelToXML
                     buildRecords[counter].model = values[4];
                     buildRecords[counter].modelYear = values[5];
                     buildRecords[counter].dealerID = values[6];
-                    //Add every year indiscriminately
+                    //Add every year indiscriminate
                     dates.Add(buildRecords[counter].FacReDate);
 
                     counter++;
@@ -159,7 +158,7 @@ namespace ExcelToXML
             //Now run a for loop for every unique year. 
             var numYears = uniqueDates.Count();
 
-            //uniqueDates contains a "blank" years field. It is the last year. Let's not include it by using numYears-1
+            //uniqueDates contains a "blank" [""] years field. It is the last year. Let's not include it by using numYears-1
             //----------------------------------------------- Part 4 ----------------------------------------------- 
             for (int n = 0; n < numYears-1; n++)
             {
@@ -363,7 +362,7 @@ namespace ExcelToXML
                 //we will only add if they match the current year. 
                 for (int i = 0; i < count; i++)
                 {
-                    if (soldRecords[i].saleDate == curYear) //
+                    if (soldRecords[i].saleDate == curYear) 
                     {
                         //cast this date string to the right format YYYY-MM-DD instead of MM/DD/YYYY
                         string newDate = "";
