@@ -92,6 +92,7 @@ namespace ExcelToXML
         {
 
             //----------------------------------------------- Part 1 ----------------------------------------------- 
+            //------------------------Opening a CSV file which has formatted information----------------------------
             OpenFileDialog fill = new OpenFileDialog();
             fill.Filter = "CSV Files (*.csv)|*.csv";
             fill.ShowDialog();
@@ -110,11 +111,11 @@ namespace ExcelToXML
             var lines = File.ReadAllLines(csvPath);
             var count = lines.Length - 1;
 
-            //----------------------------------------------- Part 2 ----------------------------------------------- 
-            //make an array of structs that will hold all the parsed csv info
+            //----------------------------------------------- Part 2 -----------------------------------------------
+            //---------------make an array of structs that will hold all the parsed csv info------------------------
             Records[] buildRecords = new Records[count];
 
-            List<string> dates = new List<string>(); //dates will hold all dates but then be sorted to only contain unique dates.
+            List<string> dates = new List<string>(); //dates holds all record dates. 
             //Once we have unique dates, we know how many xml files we need to make. For each unique date, create an xml and run a loop.
             //Write it to an xml file if it matches the year. Skip if not. 
 
@@ -122,14 +123,14 @@ namespace ExcelToXML
             //Parse through the csv and put things in the corresponding Records[]
             using (var reader = new StreamReader(csvPath))
             {
-                reader.ReadLine(); //skip first
+                reader.ReadLine(); //[Skip First Line] because it contains the column names 
                 int counter = 0; //index
                 while (!reader.EndOfStream)
                 {
+                    //read line then split it
                     var line = reader.ReadLine();
-                    var values = line.Split(','); //read line then split it
-                    string toDisplay = string.Join(Environment.NewLine, values);
-                    //append split value into struct
+                    var values = line.Split(','); //values now is organzied as such: values[0] has the VIN, values[3] has the make, etc.
+                    //string toDisplay = string.Join(Environment.NewLine, values);
                     buildRecords[counter].VIN = values[0];
                     //Use Factory Build Date -- if it's empty, use Built Date
                     if (values[1] == "")//If Factory Release Date is empty:
@@ -140,18 +141,16 @@ namespace ExcelToXML
                     {
                         buildRecords[counter].FacReDate = values[1];
                     }
-
                     buildRecords[counter].make = values[3];
                     buildRecords[counter].model = values[4];
                     buildRecords[counter].modelYear = values[5];
                     buildRecords[counter].dealerID = values[6];
-                    //Add every year indiscriminate
+                    //Add this record's year to dates
                     dates.Add(buildRecords[counter].FacReDate);
-
                     counter++;
                 }
             }
-            //Remove all duplicates
+            //Remove all duplicates from dates
             List<string> uniqueDates = dates.Distinct().ToList();
             //var message = string.Join(",",uniqueDates);
 
@@ -176,9 +175,10 @@ namespace ExcelToXML
                 objXDoc.Root.Add(new XElement(ns + "HEADER",
                     new XElement(ns + "SENDER_ID", "RRDAIMLER"),
                     new XElement(ns + "RETAILER_TRANSACTION_ID", 45532411 + n),
-                    new XElement(ns + "FILE_SENT_DATE", DateTime.Now.ToString("yyyy-MM-dd")))); 
+                    new XElement(ns + "FILE_SENT_DATE", DateTime.Now.ToString("yyyy-MM-dd"))));
 
-                var xmlIndex = 1;
+                var xmlIndex = 1;//xmlIndex refers to the Transaction_ID of the xml 
+                //eg. xmlIndex can reach 50 if there are 50 records with that date
                 for (int i = 0; i < count; i++)
                 {
                     //for every record, check if the date matches our curYear
@@ -250,7 +250,6 @@ namespace ExcelToXML
             //Create the SOLD XML path
             string dirPath = @"C:\Users\" + Environment.UserName + @"\Desktop\XMLs";
             DirectoryInfo di = Directory.CreateDirectory(dirPath);
-            //string builtPath = dirPath + @"\RRDAIMLER_BUILT_" + @".xml";
             string soldPath = dirPath + @"\RRDAIMLER_SOLD_" + DateTime.Now.ToString("yyyyMMdd")+ "_";
 
             //Get the number of records
@@ -270,13 +269,14 @@ namespace ExcelToXML
             //Parse through the csv and put things in the corresponding Records[]
             using (var reader = new StreamReader(csvPath))
             {
-                reader.ReadLine(); //skip first
+                reader.ReadLine(); //[Skip First Line] because it contains the column names 
                 int counter = 0; //index
                 while (!reader.EndOfStream)
                 {
                     var line = reader.ReadLine();
                     var values = line.Split(','); //read line then split it
-                    string toDisplay = string.Join(Environment.NewLine, values);
+                    //values now is organzied as such: values[0] has the VIN, values[5] has the make, etc.
+                    //string toDisplay = string.Join(Environment.NewLine, values);
                     //MessageBox.Show(toDisplay);
                     //append split value into struct
                     soldRecords[counter].VIN = values[0];
@@ -309,7 +309,7 @@ namespace ExcelToXML
                     soldRecords[counter].make = values[5];
                     soldRecords[counter].model = values[6];
                     soldRecords[counter].modelYear = values[7];
-                    soldRecords[counter].firstName = values[8];//NA or CA 
+                    soldRecords[counter].firstName = values[8];//NA
                     soldRecords[counter].lastName = values[9];
                     soldRecords[counter].addressLn1 = values[10];
                     soldRecords[counter].city = values[11];
